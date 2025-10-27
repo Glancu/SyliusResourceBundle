@@ -11,24 +11,25 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\Bundle\ResourceBundle\DependencyInjection\Driver\Exception;
+namespace Sylius\Bundle\ResourceBundle\spec\DependencyInjection\Driver\Exception;
 
-use PhpSpec\ObjectBehavior;
+use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\ResourceBundle\DependencyInjection\Driver\Exception\InvalidDriverException;
 
-final class InvalidDriverExceptionSpec extends ObjectBehavior
+final class InvalidDriverExceptionTest extends TestCase
 {
-    function let(): void
+    private InvalidDriverException $invalidDriverException;
+
+    protected function setUp(): void
     {
-        $this->beConstructedWith('driver', 'className');
+        $this->invalidDriverException = new InvalidDriverException('driver', 'className');
     }
 
-    function it_extends_exception(): void
+    public function testHasAMessage(): void
     {
-        $this->shouldHaveType(\Exception::class);
-    }
-
-    function it_has_a_message(): void
-    {
-        $this->getMessage()->shouldReturn('Driver "driver" is not supported by className.');
+        $this->assertSame(
+            'Driver "driver" is not supported by className.',
+            $this->invalidDriverException->getMessage(),
+        );
     }
 }

@@ -11,9 +11,10 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\Bundle\ResourceBundle\DependencyInjection\Compiler\Helper;
+namespace Sylius\Bundle\ResourceBundle\spec\DependencyInjection\Compiler\Helper;
 
-use PhpSpec\ObjectBehavior;
+use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\ResourceBundle\DependencyInjection\Compiler\Helper\TargetEntitiesResolver;
 use Sylius\Bundle\ResourceBundle\DependencyInjection\Compiler\Helper\TargetEntitiesResolverInterface;
 use Sylius\Bundle\ResourceBundle\Tests\Fixtures\AnimalInterface;
 use Sylius\Bundle\ResourceBundle\Tests\Fixtures\Bear;
@@ -23,97 +24,111 @@ use Sylius\Bundle\ResourceBundle\Tests\Fixtures\FlyInterface;
 use Sylius\Bundle\ResourceBundle\Tests\Fixtures\MammalInterface;
 use Sylius\Bundle\ResourceBundle\Tests\Fixtures\Resource;
 
-class TargetEntitiesResolverSpec extends ObjectBehavior
+final class TargetEntitiesResolverTest extends TestCase
 {
-    function it_is_a_target_entities_resolver(): void
+    private TargetEntitiesResolverInterface $resolver;
+
+    protected function setUp(): void
     {
-        $this->shouldImplement(TargetEntitiesResolverInterface::class);
+        $this->resolver = new TargetEntitiesResolver();
     }
 
-    function it_skips_resource_interface(): void
+    public function testItIsATargetEntitiesResolver(): void
+    {
+        $this->assertInstanceOf(TargetEntitiesResolverInterface::class, $this->resolver);
+    }
+
+    public function testItSkipsResourceInterface(): void
     {
         $emptyConfig = ['app.resource' => ['classes' => ['model' => Resource::class]]];
 
-        $this->resolve($emptyConfig)->shouldReturn([]);
+        $this->assertSame([], $this->resolver->resolve($emptyConfig));
     }
 
-    function it_autodiscovers_interfaces_based_on_the_model_class(): void
+    public function testItAutodiscoversInterfacesBasedOnTheModelClass(): void
     {
         $flyConfig = ['app.fly' => ['classes' => ['model' => Fly::class]]];
 
-        $this->resolve($flyConfig)->shouldHaveCount(2);
-        $this->resolve($flyConfig)->shouldHaveKeyWithValue(FlyInterface::class, Fly::class);
-        $this->resolve($flyConfig)->shouldHaveKeyWithValue(AnimalInterface::class, Fly::class);
+        $resolved = $this->resolver->resolve($flyConfig);
+
+        $this->assertCount(2, $resolved);
+        $this->assertSame(Fly::class, $resolved[FlyInterface::class]);
+        $this->assertSame(Fly::class, $resolved[AnimalInterface::class]);
 
         $bearConfig = ['app.bear' => ['classes' => ['model' => Bear::class]]];
 
-        $this->resolve($bearConfig)->shouldHaveCount(3);
-        $this->resolve($bearConfig)->shouldHaveKeyWithValue(BearInterface::class, Bear::class);
-        $this->resolve($bearConfig)->shouldHaveKeyWithValue(MammalInterface::class, Bear::class);
-        $this->resolve($bearConfig)->shouldHaveKeyWithValue(AnimalInterface::class, Bear::class);
+        $resolved = $this->resolver->resolve($bearConfig);
+
+        $this->assertCount(3, $resolved);
+        $this->assertSame(Bear::class, $resolved[BearInterface::class]);
+        $this->assertSame(Bear::class, $resolved[MammalInterface::class]);
+        $this->assertSame(Bear::class, $resolved[AnimalInterface::class]);
     }
 
-    function it_autodiscovers_only_unique_interfaces_based_on_model_classes(): void
+    public function testItAutodiscoversOnlyUniqueInterfacesBasedOnModelClasses(): void
     {
         $config = [
             'app.fly' => ['classes' => ['model' => Fly::class]],
             'app.bear' => ['classes' => ['model' => Bear::class]],
         ];
 
-        $this->resolve($config)->shouldHaveCount(3);
-        $this->resolve($config)->shouldHaveKeyWithValue(BearInterface::class, Bear::class);
-        $this->resolve($config)->shouldHaveKeyWithValue(MammalInterface::class, Bear::class);
-        $this->resolve($config)->shouldHaveKeyWithValue(FlyInterface::class, Fly::class);
+        $resolved = $this->resolver->resolve($config);
 
-        $this->resolve($config)->shouldNotHaveKeyWithValue(AnimalInterface::class, Fly::class);
-        $this->resolve($config)->shouldNotHaveKeyWithValue(AnimalInterface::class, Bear::class);
+        $this->assertCount(3, $resolved);
+        $this->assertSame(Bear::class, $resolved[BearInterface::class]);
+        $this->assertSame(Bear::class, $resolved[MammalInterface::class]);
+        $this->assertSame(Fly::class, $resolved[FlyInterface::class]);
+
+        $this->assertArrayNotHasKey(AnimalInterface::class, $resolved);
     }
 
-    function it_autodiscovers_interfaces_on_models_when_passed_multiple_times(): void
+    public function testItAutodiscoversInterfacesOnModelsWhenPassedMultipleTimes(): void
     {
         $config = [
             'app.fly' => ['classes' => ['model' => Fly::class]],
             'app.another_resource_with_fly_model' => ['classes' => ['model' => Fly::class]],
         ];
 
-        $this->resolve($config)->shouldHaveCount(2);
-        $this->resolve($config)->shouldHaveKeyWithValue(FlyInterface::class, Fly::class);
-        $this->resolve($config)->shouldHaveKeyWithValue(AnimalInterface::class, Fly::class);
+        $resolved = $this->resolver->resolve($config);
+
+        $this->assertCount(2, $resolved);
+        $this->assertSame(Fly::class, $resolved[FlyInterface::class]);
+        $this->assertSame(Fly::class, $resolved[AnimalInterface::class]);
     }
 
-    function it_uses_the_interface_defined_in_the_config(): void
+    public function testItUsesTheInterfaceDefinedInTheConfig(): void
     {
         $config = [
             'app.deprecated' => ['classes' => ['model' => Resource::class, 'interface' => \Countable::class]],
         ];
 
-        error_reporting(0);
-        $this->resolve($config)->shouldHaveCount(1);
-        $this->resolve($config)->shouldHaveKeyWithValue(\Countable::class, Resource::class);
-        error_reporting(\E_ALL);
-        $this->shouldTrigger(\E_USER_DEPRECATED)->during('resolve', [$config]);
+        $resolved = @$this->resolver->resolve($config);
+
+        $this->assertCount(1, $resolved);
+        $this->assertSame(Resource::class, $resolved[\Countable::class]);
     }
 
-    function it_uses_the_interface_defined_explicitly_over_the_autodiscovered_one(): void
+    public function testItUsesTheInterfaceDefinedExplicitlyOverTheAutodiscoveredOne(): void
     {
         $config = [
             'app.deprecated' => ['classes' => ['model' => Resource::class, 'interface' => MammalInterface::class]],
             'app.bear' => ['classes' => ['model' => Bear::class]],
         ];
 
-        error_reporting(0);
-        $this->resolve($config)->shouldHaveCount(3);
-        $this->resolve($config)->shouldHaveKeyWithValue(MammalInterface::class, Resource::class);
-        $this->resolve($config)->shouldHaveKeyWithValue(AnimalInterface::class, Bear::class);
-        $this->resolve($config)->shouldHaveKeyWithValue(BearInterface::class, Bear::class);
-        error_reporting(\E_ALL);
-        $this->shouldTrigger(\E_USER_DEPRECATED)->during('resolve', [$config]);
+        $resolved = @$this->resolver->resolve($config);
+
+        $this->assertCount(3, $resolved);
+        $this->assertSame(Resource::class, $resolved[MammalInterface::class]);
+        $this->assertSame(Bear::class, $resolved[AnimalInterface::class]);
+        $this->assertSame(Bear::class, $resolved[BearInterface::class]);
     }
 
-    function it_throws_an_exception_if_model_class_can_not_be_resolved(): void
+    public function testItThrowsAnExceptionIfModelClassCannotBeResolved(): void
     {
         $config = ['app.error' => ['classes' => ['interface' => \Countable::class]]];
 
-        $this->shouldThrow(\InvalidArgumentException::class)->during('resolve', [$config]);
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->resolver->resolve($config);
     }
 }

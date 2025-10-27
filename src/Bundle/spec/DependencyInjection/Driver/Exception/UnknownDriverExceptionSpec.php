@@ -11,24 +11,22 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\Bundle\ResourceBundle\DependencyInjection\Driver\Exception;
+namespace Sylius\Bundle\ResourceBundle\Tests\DependencyInjection\Driver\Exception;
 
-use PhpSpec\ObjectBehavior;
+use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\ResourceBundle\DependencyInjection\Driver\Exception\UnknownDriverException;
 
-final class UnknownDriverExceptionSpec extends ObjectBehavior
+final class UnknownDriverExceptionTest extends TestCase
 {
-    function let(): void
+    private UnknownDriverException $unknownDriverException;
+
+    protected function setUp(): void
     {
-        $this->beConstructedWith('driver');
+        $this->unknownDriverException = new UnknownDriverException('driver');
     }
 
-    function it_extends_exception(): void
+    public function testHasAMessage(): void
     {
-        $this->shouldHaveType(\Exception::class);
-    }
-
-    function it_has_a_message(): void
-    {
-        $this->getMessage()->shouldReturn('Unknown driver "driver".');
+        $this->assertSame('Unknown driver "driver".', $this->unknownDriverException->getMessage());
     }
 }

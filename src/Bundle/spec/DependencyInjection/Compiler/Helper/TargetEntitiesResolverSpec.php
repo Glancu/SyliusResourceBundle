@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Sylius\Bundle\ResourceBundle\Tests\DependencyInjection\Compiler\Helper;
+namespace Sylius\Bundle\ResourceBundle\spec\DependencyInjection\Compiler\Helper;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\ResourceBundle\DependencyInjection\Compiler\Helper\TargetEntitiesResolver;

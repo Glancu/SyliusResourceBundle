@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Sylius\Bundle\ResourceBundle\Tests\DependencyInjection\Driver\Exception;
+namespace Sylius\Bundle\ResourceBundle\spec\DependencyInjection\Driver\Exception;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\ResourceBundle\DependencyInjection\Driver\Exception\InvalidDriverException;
